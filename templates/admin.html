@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - 管理后台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='EasyShare.ico') }}">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="header-left">
+            <h1 class="logo">⚙️ 管理后台</h1>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-icon" onclick="toggleTheme()" title="切换主题" id="themeToggleBtn">☀️</button>
+            <button class="btn btn-sm" onclick="location.href='/'">返回首页</button>
+            <button class="btn btn-text" onclick="logout()">退出登录</button>
+        </div>
+    </header>
+
+    <!-- 选项卡 -->
+    <div class="tabs">
+        <button class="tab active" data-tab="users">用户管理</button>
+        <button class="tab" data-tab="site">网站设置</button>
+        <button class="tab" data-tab="config">系统配置</button>
+        <button class="tab" data-tab="logs">操作日志</button>
+        <button class="tab" data-tab="trash">回收站</button>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="admin-content">
+        <!-- 用户管理 -->
+        <div class="tab-content active" id="users">
+            <div class="card">
+                <div class="card-header">
+                    <h3>用户列表</h3>
+                    <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">添加用户</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>用户名</th>
+                                <th>角色</th>
+                                <th>创建时间</th>
+                                <th>最后登录</th>
+                                <th>状态</th>
+                                <th>批量下载</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 网站设置 -->
+        <div class="tab-content" id="site">
+            <div class="card">
+                <div class="card-header">
+                    <h3>网站设置</h3>
+                </div>
+                <div class="card-body">
+                    <form id="siteForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>网站标题</label>
+                                <input type="text" id="cfg_site_title" class="input" placeholder="显示在首页顶部">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>浏览器标签标题</label>
+                                <input type="text" id="cfg_page_title" class="input" placeholder="显示在浏览器标签页，如：文件共享站">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" onclick="saveSiteConfig()">保存网站设置</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统配置 -->
+        <div class="tab-content" id="config">
+            <div class="card">
+                <div class="card-header">
+                    <h3>系统配置</h3>
+                </div>
+                <div class="card-body">
+                    <form id="configForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>共享目录</label>
+                                <input type="text" id="cfg_share_path" class="input" placeholder="选择共享文件夹">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>监听端口</label>
+                                <input type="number" id="cfg_port" class="input" min="1" max="65535">
+                            </div>
+                            <div class="form-group">
+                                <label>监听地址</label>
+                                <input type="text" id="cfg_host" class="input" placeholder="0.0.0.0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>匿名访问</label>
+                                <select id="cfg_anonymous_access" class="input">
+                                    <option value="false">禁用</option>
+                                    <option value="true">启用</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>匿名用户权限</label>
+                                <select id="cfg_anonymous_readonly" class="input">
+                                    <option value="true">只读</option>
+                                    <option value="false">读写</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>允许匿名上传</label>
+                                <select id="cfg_anonymous_upload" class="input">
+                                    <option value="false">禁用</option>
+                                    <option value="true">启用</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>允许匿名批量下载</label>
+                                <select id="cfg_anonymous_batch_download" class="input">
+                                    <option value="false">禁用</option>
+                                    <option value="true">启用</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>隐藏文件夹（逗号分隔）</label>
+                                <input type="text" id="cfg_hidden_folders" class="input" placeholder="如: .private, .secret">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>最大上传大小 (MB)，最大 102400 MB (100GB)</label>
+                                <input type="number" id="cfg_max_upload_size" class="input" min="1" max="102400">
+                            </div>
+                        </div>
+                        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 15px;">安全策略</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>密码最小长度</label>
+                                <input type="number" id="cfg_password_min_length" class="input" min="4" max="32" value="6">
+                            </div>
+                            <div class="form-group">
+                                <label>登录失败锁定次数</label>
+                                <input type="number" id="cfg_login_max_attempts" class="input" min="3" max="20" value="5">
+                            </div>
+                            <div class="form-group">
+                                <label>登录锁定时间（分钟）</label>
+                                <input type="number" id="cfg_login_lock_minutes" class="input" min="1" max="1440" value="15">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>密码必须包含大写字母</label>
+                                <select id="cfg_password_require_uppercase" class="input">
+                                    <option value="false">否</option>
+                                    <option value="true">是</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>密码必须包含数字</label>
+                                <select id="cfg_password_require_number" class="input">
+                                    <option value="false">否</option>
+                                    <option value="true">是</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>密码必须包含特殊字符</label>
+                                <select id="cfg_password_require_special" class="input">
+                                    <option value="false">否</option>
+                                    <option value="true">是</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>回收站保留天数</label>
+                                <input type="number" id="cfg_trash_retention_days" class="input" min="1" max="365" value="30">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                            <button type="button" class="btn" onclick="resetConfig()">重置</button>
+                            <button type="button" class="btn btn-warning" onclick="restartServer()">重启服务</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h3>开机自启动</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">开启后将自动将EasyShare添加到Windows开机启动项。</p>
+                    <div style="display: flex; align-items: center; gap: 15px; margin: 15px 0;">
+                        <label class="switch">
+                            <input type="checkbox" id="autoStartToggle" onchange="toggleAutoStart(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                        <span id="autoStartStatus">加载中...</span>
+                    </div>
+                    <p class="text-muted" style="margin-top: 10px; font-size: 12px;">
+                        提示：需要在管理员权限下运行程序才能配置开机自启动。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作日志 -->
+        <div class="tab-content" id="logs">
+            <div class="card">
+                <div class="card-header">
+                    <h3>操作日志</h3>
+                    <select id="logFilter" class="input" onchange="loadLogs()">
+                        <option value="">全部操作</option>
+                        <option value="login">登录</option>
+                        <option value="logout">登出</option>
+                        <option value="upload">上传</option>
+                        <option value="delete">删除</option>
+                        <option value="download">下载</option>
+                        <option value="mkdir">创建文件夹</option>
+                        <option value="rename">重命名</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>用户</th>
+                                <th>操作</th>
+                                <th>路径</th>
+                                <th>详情</th>
+                                <th>IP地址</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTable"></tbody>
+                    </table>
+                    <div class="pagination" id="logsPagination"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 回收站 -->
+        <div class="tab-content" id="trash">
+            <div class="card">
+                <div class="card-header">
+                    <h3>回收站</h3>
+                    <button class="btn btn-danger btn-sm" onclick="clearTrash()">清空回收站</button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted" style="margin-bottom: 15px;">
+                        回收站文件将在 <span id="retentionDays">30</span> 天后自动清除
+                    </p>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th>类型</th>
+                                <th>大小</th>
+                                <th>删除时间</th>
+                                <th>剩余时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trashTable"></tbody>
+                    </table>
+                    <div class="pagination" id="trashPagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加用户模态框 -->
+    <div class="modal" id="addUserModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>添加用户</h3>
+                <button class="close" onclick="closeModal('addUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="newUsername" class="input" placeholder="用户名" pattern="^[a-zA-Z0-9_]{3,20}$">
+                    <small class="text-muted" style="font-size: 11px; color: var(--text-secondary);">只能包含字母、数字、下划线，长度3-20个字符</small>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="newPassword" class="input" placeholder="密码">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="newPasswordConfirm" class="input" placeholder="再次输入密码">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="newUserRole" class="input">
+                        <option value="readonly">只读用户</option>
+                        <option value="readwrite">读写用户</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>允许批量下载</label>
+                    <select id="newUserBatchDownload" class="input">
+                        <option value="true">允许</option>
+                        <option value="false">禁止</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('addUserModal')">取消</button>
+                <button class="btn btn-primary" onclick="addUser()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑用户模态框 -->
+    <div class="modal" id="editUserModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>编辑用户</h3>
+                <button class="close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="editUsername" class="input">
+                    <small class="text-muted" style="font-size: 11px; color: var(--text-secondary);">只能包含字母、数字、下划线，长度3-20个字符</small>
+                </div>
+                <div class="form-group">
+                    <label>新密码（留空不修改）</label>
+                    <input type="password" id="editPassword" class="input" placeholder="留空不修改">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="editPasswordConfirm" class="input" placeholder="再次输入密码">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="editUserRole" class="input">
+                        <option value="readonly">只读用户</option>
+                        <option value="readwrite">读写用户</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select id="editUserActive" class="input">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="form-group" id="editBatchDownloadGroup">
+                    <label>允许批量下载</label>
+                    <select id="editUserBatchDownload" class="input">
+                        <option value="true">允许</option>
+                        <option value="false">禁止</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('editUserModal')">取消</button>
+                <button class="btn btn-primary" onclick="updateUser()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const currentUserId = {{ user.id if user else 'null' }};
+        
+        // 选项卡切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+
+                // 加载对应数据
+                if (tab.dataset.tab === 'users') loadUsers();
+                if (tab.dataset.tab === 'site') loadConfig();  // 网站设置
+                if (tab.dataset.tab === 'config') loadConfig();
+                if (tab.dataset.tab === 'logs') loadLogs();
+                if (tab.dataset.tab === 'trash') loadTrash();
+            });
+        });
+
+        // 加载用户列表
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+                if (data.success) {
+                    renderUsers(data.users);
+                }
+            } catch (err) {
+                showToast('加载用户失败', 'error');
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTable');
+            const roleMap = {admin: '管理员', readonly: '只读', readwrite: '读写'};
+
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td><span class="badge badge-${user.role}">${roleMap[user.role] || user.role}</span></td>
+                    <td>${user.created_at || '-'}</td>
+                    <td>${user.last_login || '从未登录'}</td>
+                    <td>${user.is_active ? '<span class="text-success">启用</span>' : '<span class="text-danger">禁用</span>'}</td>
+                    <td>${user.allow_batch_download ? '<span class="text-success">允许</span>' : '<span class="text-danger">禁止</span>'}</td>
+                    <td>
+                        <button class="btn-action" onclick="editUser(${user.id}, '${user.username}', '${user.role}', ${user.is_active ? 'true' : 'false'}, ${user.allow_batch_download ? 'true' : 'false'})">✏️</button>
+                        ${user.id !== currentUserId ? '<button class="btn-action" onclick="removeUser(' + user.id + ')">🗑️</button>' : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddUserModal() {
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newPasswordConfirm').value = '';
+            document.getElementById('newUserRole').value = 'readonly';
+            document.getElementById('newUserBatchDownload').value = 'false';
+            document.getElementById('addUserModal').style.display = 'flex';
+        }
+
+        async function addUser() {
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value;
+            const passwordConfirm = document.getElementById('newPasswordConfirm').value;
+            const role = document.getElementById('newUserRole').value;
+            const allow_batch_download = document.getElementById('newUserBatchDownload').value === 'true';
+
+            if (!username || !password) {
+                showToast('请填写完整信息', 'error');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                showToast('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password, role, allow_batch_download})
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    closeModal('addUserModal');
+                    loadUsers();
+                    showToast('用户添加成功');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('添加失败', 'error');
+            }
+        }
+
+        function editUser(id, username, role, isActive, allowBatchDownload) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editPasswordConfirm').value = '';
+            document.getElementById('editUserRole').value = role;
+            document.getElementById('editUserActive').value = (isActive === true || isActive === 'true') ? 'true' : 'false';
+            document.getElementById('editUserBatchDownload').value = (allowBatchDownload === true || allowBatchDownload === 'true') ? 'true' : 'false';
+            
+            // 当前用户不能修改自己的状态，禁用状态选择框
+            const isCurrentUser = (id === currentUserId);
+            document.getElementById('editUserActive').disabled = isCurrentUser;
+            
+            // 管理员角色自动拥有全部权限，隐藏批量下载设置
+            const isAdmin = (role === 'admin');
+            document.getElementById('editBatchDownloadGroup').style.display = isAdmin ? 'none' : 'block';
+            
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+
+        async function updateUser() {
+            const id = document.getElementById('editUserId').value;
+            const username = document.getElementById('editUsername').value.trim();
+            const password = document.getElementById('editPassword').value;
+            const passwordConfirm = document.getElementById('editPasswordConfirm').value;
+            const role = document.getElementById('editUserRole').value;
+            const is_active = document.getElementById('editUserActive').value === 'true';
+            const allow_batch_download = document.getElementById('editUserBatchDownload').value === 'true';
+
+            if (!username) {
+                showToast('用户名不能为空', 'error');
+                return;
+            }
+
+            // 如果输入了新密码，必须确认密码一致
+            if (password || passwordConfirm) {
+                if (password !== passwordConfirm) {
+                    showToast('两次输入的密码不一致', 'error');
+                    return;
+                }
+            }
+
+            // 当前用户不能修改自己的状态
+            const isCurrentUser = (id === currentUserId);
+            const body = {username, role, allow_batch_download};
+            if (password) body.password = password;
+            if (!isCurrentUser) body.is_active = is_active;
+
+            try {
+                const response = await fetch(`/api/admin/users/${id}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    closeModal('editUserModal');
+                    loadUsers();
+                    showToast('用户更新成功');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('更新失败', 'error');
+            }
+        }
+
+        async function removeUser(id) {
+            if (!confirm('确定要删除此用户吗？')) return;
+
+            try {
+                const response = await fetch(`/api/admin/users/${id}`, {method: 'DELETE'});
+                const data = await response.json();
+
+                if (data.success) {
+                    loadUsers();
+                    showToast('用户已删除');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('删除失败', 'error');
+            }
+        }
+
+        // 配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/admin/config');
+                const data = await response.json();
+                if (data.success) {
+                    const cfg = data.config;
+                    // 网站设置
+                    document.getElementById('cfg_site_title').value = cfg.site_title || 'EasyShare';
+                    document.getElementById('cfg_page_title').value = cfg.page_title || 'EasyShare';
+                    // 系统配置
+                    document.getElementById('cfg_share_path').value = cfg.share_path;
+                    document.getElementById('cfg_port').value = cfg.port;
+                    document.getElementById('cfg_host').value = cfg.host;
+                    document.getElementById('cfg_anonymous_access').value = String(cfg.anonymous_access);
+                    document.getElementById('cfg_anonymous_readonly').value = String(cfg.anonymous_readonly);
+                    document.getElementById('cfg_anonymous_upload').value = String(cfg.anonymous_upload);
+                    document.getElementById('cfg_anonymous_batch_download').value = String(cfg.anonymous_batch_download || false);
+                    document.getElementById('cfg_hidden_folders').value = (cfg.hidden_folders || []).join(', ');
+                    document.getElementById('cfg_max_upload_size').value = Math.floor(cfg.max_upload_size / 1024 / 1024);
+                    // 安全策略配置
+                    document.getElementById('cfg_password_min_length').value = cfg.password_min_length || 6;
+                    document.getElementById('cfg_login_max_attempts').value = cfg.login_max_attempts || 5;
+                    document.getElementById('cfg_login_lock_minutes').value = cfg.login_lock_minutes || 15;
+                    document.getElementById('cfg_password_require_uppercase').value = String(cfg.password_require_uppercase || false);
+                    document.getElementById('cfg_password_require_number').value = String(cfg.password_require_number || false);
+                    document.getElementById('cfg_password_require_special').value = String(cfg.password_require_special || false);
+                    document.getElementById('cfg_trash_retention_days').value = cfg.trash_retention_days || 30;
+                }
+            } catch (err) {
+                showToast('加载配置失败', 'error');
+            }
+        }
+
+        function resetConfig() {
+            if (!confirm('确定要重置所有配置为默认值吗？')) return;
+            // 重置为默认值
+            document.getElementById('cfg_share_path').value = '.';
+            document.getElementById('cfg_port').value = 8081;
+            document.getElementById('cfg_host').value = '0.0.0.0';
+            document.getElementById('cfg_anonymous_access').value = 'true';
+            document.getElementById('cfg_anonymous_readonly').value = 'true';
+            document.getElementById('cfg_anonymous_upload').value = 'false';
+            document.getElementById('cfg_anonymous_batch_download').value = 'false';
+            document.getElementById('cfg_hidden_folders').value = '';
+            document.getElementById('cfg_max_upload_size').value = 102400;
+            // 安全策略默认值
+            document.getElementById('cfg_password_min_length').value = 6;
+            document.getElementById('cfg_login_max_attempts').value = 5;
+            document.getElementById('cfg_login_lock_minutes').value = 15;
+            document.getElementById('cfg_password_require_uppercase').value = 'false';
+            document.getElementById('cfg_password_require_number').value = 'false';
+            document.getElementById('cfg_password_require_special').value = 'false';
+            document.getElementById('cfg_trash_retention_days').value = 30;
+            showToast('已重置为默认值，请点击保存生效');
+        }
+
+        // 网站设置
+        async function saveSiteConfig() {
+            const siteConfig = {
+                site_title: document.getElementById('cfg_site_title').value,
+                page_title: document.getElementById('cfg_page_title').value
+            };
+            
+            try {
+                const response = await fetch('/api/admin/site-config', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(siteConfig)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('网站设置已保存，刷新页面后生效');
+                    // 刷新页面使更改立即生效
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('保存失败', 'error');
+            }
+        }
+
+        async function saveConfig() {
+            const hiddenStr = document.getElementById('cfg_hidden_folders').value;
+            const hiddenFolders = hiddenStr.split(',').map(s => s.trim()).filter(s => s);
+
+            const config = {
+                share_path: document.getElementById('cfg_share_path').value,
+                port: parseInt(document.getElementById('cfg_port').value),
+                host: document.getElementById('cfg_host').value,
+                anonymous_access: document.getElementById('cfg_anonymous_access').value === 'true',
+                anonymous_readonly: document.getElementById('cfg_anonymous_readonly').value === 'true',
+                anonymous_upload: document.getElementById('cfg_anonymous_upload').value === 'true',
+                anonymous_batch_download: document.getElementById('cfg_anonymous_batch_download').value === 'true',
+                hidden_folders: hiddenFolders,
+                max_upload_size: parseInt(document.getElementById('cfg_max_upload_size').value) * 1024 * 1024,
+                // 安全策略配置
+                password_min_length: parseInt(document.getElementById('cfg_password_min_length').value),
+                login_max_attempts: parseInt(document.getElementById('cfg_login_max_attempts').value),
+                login_lock_minutes: parseInt(document.getElementById('cfg_login_lock_minutes').value),
+                password_require_uppercase: document.getElementById('cfg_password_require_uppercase').value === 'true',
+                password_require_number: document.getElementById('cfg_password_require_number').value === 'true',
+                password_require_special: document.getElementById('cfg_password_require_special').value === 'true',
+                trash_retention_days: parseInt(document.getElementById('cfg_trash_retention_days').value)
+            };
+
+            try {
+                const response = await fetch('/api/admin/config', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(config)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('配置已保存，部分配置需重启服务后生效');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('保存失败', 'error');
+            }
+        }
+
+        // 开机自启动
+        async function loadAutoStartStatus() {
+            try {
+                const response = await fetch('/api/admin/autostart');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('autoStartToggle').checked = data.enabled;
+                    document.getElementById('autoStartStatus').textContent = data.enabled ? '已开启' : '已关闭';
+                }
+            } catch (err) {
+                document.getElementById('autoStartStatus').textContent = '加载失败';
+            }
+        }
+
+        async function toggleAutoStart(enable) {
+            try {
+                const response = await fetch('/api/admin/autostart', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({enable: enable})
+                });
+                const data = await response.json();
+                showToast(data.message);
+                loadAutoStartStatus();
+            } catch (err) {
+                showToast('操作失败', 'error');
+            }
+        }
+
+        // 初始化时加载开机自启动状态
+        loadAutoStartStatus();
+
+        // 日志
+        async function loadLogs(page = 1) {
+            const action = document.getElementById('logFilter').value;
+
+            try {
+                const response = await fetch(`/api/admin/logs?page=${page}&limit=50&action=${action}`);
+                const data = await response.json();
+                if (data.success) {
+                    renderLogs(data.logs);
+                    renderPagination('logsPagination', data.total, data.page, data.limit);
+                }
+            } catch (err) {
+                showToast('加载日志失败', 'error');
+            }
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logsTable');
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">暂无日志</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => `
+                <tr>
+                    <td>${log.created_at || '-'}</td>
+                    <td>${log.username || '匿名'}</td>
+                    <td>${log.action}</td>
+                    <td>${log.path || '-'}</td>
+                    <td>${log.detail || '-'}</td>
+                    <td>${log.ip || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPagination(containerId, total, currentPage, limit, callback) {
+            const container = document.getElementById(containerId);
+            const totalPages = Math.ceil(total / limit);
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : ''}" onclick="${callback}(${i})">${i}</button> `;
+            }
+            container.innerHTML = html;
+        }
+
+        // 回收站
+        async function loadTrash(page = 1) {
+            try {
+                // 先加载配置获取回收站保留天数
+                const configRes = await fetch('/api/admin/config');
+                const configData = await configRes.json();
+                if (configData.success) {
+                    window.trashRetentionDays = configData.config.trash_retention_days || 30;
+                    document.getElementById('retentionDays').textContent = window.trashRetentionDays;
+                }
+                
+                const response = await fetch(`/api/admin/trash?page=${page}&limit=50`);
+                const data = await response.json();
+                if (data.success) {
+                    renderTrash(data.items);
+                    renderPagination('trashPagination', data.total, data.page, data.limit);
+                }
+            } catch (err) {
+                showToast('加载回收站失败', 'error');
+            }
+        }
+
+        function renderTrash(items) {
+            const tbody = document.getElementById('trashTable');
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">回收站为空</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map(item => {
+                const deletedAt = new Date(item.deleted_at);
+                const expiryDate = new Date(deletedAt.getTime() + (window.trashRetentionDays || 30) * 24 * 60 * 60 * 1000);
+                const now = new Date();
+                const remainingMs = expiryDate - now;
+                const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+                const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+                
+                let remainingText = '-';
+                let remainingClass = '';
+                if (remainingDays <= 0 && remainingHours <= 0) {
+                    remainingText = '已过期';
+                    remainingClass = 'color: var(--danger-color)';
+                } else if (remainingDays <= 3) {
+                    remainingText = `${remainingDays} 天`;
+                    remainingClass = 'color: var(--danger-color); font-weight: 600';
+                } else if (remainingDays <= 7) {
+                    remainingText = `${remainingDays} 天`;
+                    remainingClass = 'color: var(--warning-color)';
+                } else {
+                    remainingText = `${remainingDays} 天`;
+                }
+                
+                return `
+                <tr data-id="${item.id}" data-expiry="${expiryDate.getTime()}">
+                    <td title="${item.original_path}">${item.original_path.split('/').pop()}</td>
+                    <td>${item.file_type}</td>
+                    <td>${item.file_size ? formatSize(item.file_size) : '-'}</td>
+                    <td>${item.deleted_at ? item.deleted_at.replace('T', ' ').substring(0, 19) : '-'}</td>
+                    <td style="${remainingClass}">${remainingText}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="restoreTrash(${item.id})">恢复</button>
+                        <button class="btn btn-sm btn-danger" onclick="permanentDelete(${item.id})">永久删除</button>
+                    </td>
+                </tr>
+            `}).join('');
+            
+            // 启动倒计时更新
+            updateTrashCountdowns();
+        }
+        
+        // 倒计时更新计时器
+        let countdownInterval = null;
+        
+        function updateTrashCountdowns() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            const rows = document.querySelectorAll('#trashTable tr[data-id]');
+            if (rows.length === 0) return;
+            
+            countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                let hasExpired = false;
+                
+                rows.forEach(row => {
+                    const expiryTime = parseInt(row.dataset.expiry);
+                    const remainingMs = expiryTime - now;
+                    const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+                    const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+                    const td = row.querySelector('td:nth-child(5)');
+                    
+                    if (remainingMs <= 0) {
+                        td.textContent = '已过期';
+                        td.style.color = 'var(--danger-color)';
+                        hasExpired = true;
+                    } else if (remainingDays <= 3) {
+                        td.textContent = `${remainingDays} 天`;
+                        td.style.color = 'var(--danger-color)';
+                        td.style.fontWeight = '600';
+                    } else if (remainingDays <= 7) {
+                        td.textContent = `${remainingDays} 天`;
+                        td.style.color = 'var(--warning-color)';
+                    } else {
+                        td.textContent = `${remainingDays} 天`;
+                        td.style.color = '';
+                    }
+                });
+                
+                if (hasExpired) {
+                    clearInterval(countdownInterval);
+                }
+            }, 60000); // 每分钟更新一次
+        }
+
+        function formatSize(bytes) {
+            if (!bytes) return '-';
+            for (const unit of ['B', 'KB', 'MB', 'GB']) {
+                if (bytes < 1024) return bytes.toFixed(1) + ' ' + unit;
+                bytes /= 1024;
+            }
+            return bytes.toFixed(1) + ' TB';
+        }
+
+        async function restoreTrash(id) {
+            try {
+                const response = await fetch('/api/admin/trash/restore', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id})
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    loadTrash();
+                    showToast(data.message);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('恢复失败', 'error');
+            }
+        }
+
+        async function permanentDelete(id) {
+            if (!confirm('确定要永久删除吗？此操作不可恢复！')) return;
+
+            try {
+                const response = await fetch('/api/admin/trash/permanent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id})
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    loadTrash();
+                    showToast('已永久删除');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('删除失败', 'error');
+            }
+        }
+
+        async function clearTrash() {
+            if (!confirm('确定要清空回收站吗？此操作不可恢复！')) return;
+
+            try {
+                const response = await fetch('/api/admin/trash', {method: 'DELETE'});
+                const data = await response.json();
+
+                if (data.success) {
+                    loadTrash();
+                    showToast('回收站已清空');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('清空失败', 'error');
+            }
+        }
+
+        // 重启服务器
+        async function restartServer() {
+            if (!confirm('确定要重启服务器吗？重启期间将无法访问。')) return;
+            
+            try {
+                const response = await fetch('/api/admin/restart', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('服务器正在重启，请稍后刷新页面...', 'info');
+                    // 禁用按钮防止重复点击
+                    document.querySelector('button[onclick="restartServer()"]').disabled = true;
+                    // 延迟跳转登录页
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('重启请求失败', 'error');
+            }
+        }
+
+        // 工具函数
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', {method: 'POST'});
+                window.location.href = '/login';
+            } catch (err) {
+                window.location.href = '/login';
+            }
+        }
+
+        // 主题切换
+        let currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+
+        function updateThemeIcon() {
+            const themeBtn = document.getElementById('themeToggleBtn');
+            if (themeBtn) {
+                themeBtn.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            }
+        }
+        updateThemeIcon();
+
+        async function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            html.setAttribute('data-theme', newTheme);
+            currentTheme = newTheme;
+            updateThemeIcon();
+            localStorage.setItem('theme', newTheme);
+
+            try {
+                await fetch('/api/theme', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({theme: newTheme})
+                });
+            } catch (err) {
+                // 服务器同步失败不影响本地主题
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+</body>
+</html>

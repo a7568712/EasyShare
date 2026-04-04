@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - 登录</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='EasyShare.ico') }}">
+</head>
+<body class="login-page">
+    <!-- 登录页主题切换按钮 -->
+    <button class="btn btn-icon login-theme-btn" onclick="toggleTheme()" title="切换主题" id="themeToggleBtn">🌙</button>
+
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>{{ page_title }}</h1>
+                <p>私有文件共享网盘</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="btn-text">登 录</span>
+                        <span class="btn-loading" style="display:none;">登录中...</span>
+                    </button>
+                </div>
+                <div id="errorMsg" class="error-msg" style="display:none;"></div>
+                <div id="lockMsg" class="lock-msg" style="display:none;"></div>
+            </form>
+            <div class="login-footer">
+                <a href="/" class="back-home-link">← 返回首页</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTheme = localStorage.getItem('theme') || document.documentElement.getAttribute('data-theme') || 'light';
+
+        // 初始化主题
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                currentTheme = savedTheme;
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+            updateThemeIcon();
+        });
+
+        function updateThemeIcon() {
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) {
+                btn.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            }
+        }
+
+        // 登录页主题切换（实时切换，不刷新页面）
+        async function toggleTheme() {
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            currentTheme = newTheme;
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+
+            // 同步到服务器
+            try {
+                await fetch('/api/theme', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({theme: newTheme})
+                });
+            } catch (err) {}
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = this.querySelector('button[type="submit"]');
+            const btnText = btn.querySelector('.btn-text');
+            const btnLoading = btn.querySelector('.btn-loading');
+            const errorMsg = document.getElementById('errorMsg');
+            const lockMsg = document.getElementById('lockMsg');
+            
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            errorMsg.style.display = 'none';
+            lockMsg.style.display = 'none';
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = '/';
+                } else {
+                    if (data.locked) {
+                        // 显示锁定倒计时
+                        lockMsg.innerHTML = `<span id="lockCountdown">${data.message}</span>`;
+                        lockMsg.style.display = 'block';
+                        errorMsg.style.display = 'none';
+                        btn.disabled = true;
+                        
+                        // 启动倒计时
+                        if (data.remaining_seconds) {
+                            let remaining = data.remaining_seconds;
+                            const countdown = setInterval(() => {
+                                remaining--;
+                                const mins = Math.floor(remaining / 60);
+                                const secs = remaining % 60;
+                                const countdownEl = document.getElementById('lockCountdown');
+                                if (countdownEl) {
+                                    countdownEl.textContent = `账户已锁定，请在 ${mins}分${secs}秒 后重试`;
+                                }
+                                if (remaining <= 0) {
+                                    clearInterval(countdown);
+                                    btn.disabled = false;
+                                    lockMsg.style.display = 'none';
+                                }
+                            }, 1000);
+                        }
+                    } else {
+                        errorMsg.innerHTML = data.message + (data.remaining_attempts !== undefined ? 
+                            `<br><small style="color: var(--warning-color)">剩余尝试次数: ${data.remaining_attempts}</small>` : '');
+                        errorMsg.style.display = 'block';
+                        // 登录失败时恢复按钮状态
+                        btn.disabled = false;
+                        btnText.style.display = 'inline';
+                        btnLoading.style.display = 'none';
+                    }
+                }
+            } catch (err) {
+                errorMsg.textContent = '网络错误，请重试';
+                errorMsg.style.display = 'block';
+                // 网络错误时恢复按钮状态
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
