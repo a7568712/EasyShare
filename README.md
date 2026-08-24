@@ -3,9 +3,10 @@
 一个简洁、安全、易用的局域网文件共享工具，支持文件拖拽上传、下载，文件预览、回收站等功能。
 
 ## 预览图片
+![文件管理界面](https://github.com/a7568712/EasyShare/blob/main/EasyShare%20-%20%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86.png)
 
-![文件管理界面](https://github.com/a7568712/EasyShare/blob/main/EasyShare%20-%20%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0.png)
-![管理后台界面](https://github.com/a7568712/EasyShare/blob/main/EasyShare%20-%20%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0.png）
+![管理后台界面](https://github.com/a7568712/EasyShare/blob/main/EasyShare%20-%20%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0.png)
+
 ### 文件管理
 - 📁 文件夹创建、重命名、删除
 - 📤 文件上传（支持拖拽上传）
